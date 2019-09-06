@@ -25,11 +25,11 @@
     </div>
 	<div class="row">
         <div class="form-group col-md-3">
-            <label>Source SR ID</label>
+            <label>Source SR (WKID or WKT)</label>
             <input class="form-control" type="text" id="inSR" value="" />
         </div>
         <div class="form-group col-md-3">
-            <label>Target SR ID</label>
+            <label>Target SR (WKID or WKT)</label>
             <input class="form-control" type="text" id="outSR" value="" />
         </div>
 
@@ -40,7 +40,7 @@
         
 
 		<div class="form-group col-md-6">
-            <label>Lambert = 3978 ; Mercator = 102100 ; LatLong = 4326</label>    
+            <label>Lambert = 3978 ; Mercator = 102100 ; LatLong = 4326 ; Azimuth = AZM</label>    
 			
         </div>
 		
@@ -94,24 +94,42 @@
           ) {
 
 			// http://maps-cartes.dev.ec.gc.ca/sandbox/cip/projection-bear.html
-						
+
+            function makeSR(input) {
+                var fancy;
+                if (isNaN(input)) {
+                    if (input === 'AZM') {
+                        fancy = "PROJCS[\"Sphere_ARC_INFO_Azimuthal_Equidistant\",GEOGCS[\"GCS_Sphere_ARC_INFO\",DATUM[\"D_Sphere_ARC_INFO\",SPHEROID[\"Sphere_ARC_INFO\",6370997.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Azimuthal_Equidistant\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",-90.0],PARAMETER[\"Latitude_Of_Origin\",90.0],UNIT[\"Meter\",1.0]]";
+                    } else {
+                        fancy = input;
+                    }
+
+                } else {
+                    fancy = parseInt(input);
+                }
+
+                return new SpatialReference(fancy);
+
+            }
+
 			$('#cmdEnhance').click( function() {
 
 				$('#prjX').val('');
 				$('#prjY').val('');
 				
-				var gp = new GeometryService('http://section917.cloudapp.net/arcgis/rest/services/Utilities/Geometry/GeometryServer');
+				var gp = new GeometryService('https://maps-cartes.ec.gc.ca/arcgis/rest/services/Utilities/Geometry/GeometryServer');
 
-				var inSR = parseInt($('#inSR').val());
-				var outSR = parseInt($('#outSR').val());
+				var inSR = makeSR($('#inSR').val());
+				var outSR = makeSR($('#outSR').val());
 				var ptX = parseFloat($('#ptX').val());
 				var ptY = parseFloat($('#ptY').val());
 				
 				// input validation is for babies.
 				
 				var params = new ProjectParameters();
-				params.geometries = [new Point( {x: ptX, y: ptY, spatialReference: { wkid: inSR }})];
-				params.outSR = new SpatialReference(outSR);
+                
+				params.geometries = [new Point({x: ptX, y: ptY, spatialReference: inSR })];
+				params.outSR = outSR;
 				params.transformForward = true;
 				
 				gp.project(params, function (result) {
